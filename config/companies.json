@@ -1,0 +1,15 @@
+{
+    "development" : {
+        "email" : "admin@lng.com",
+        "name" : "Founder",
+        "password" : "admin",
+        "contact" : "9650849625"
+    },
+    "staging" : {
+        "email" : "",
+        "name" : "",
+        "password" : "",
+        "contact" : ""
+
+    }
+}

@@ -1,0 +1,15 @@
+{
+    "development" : {
+        "email" : "test@gmail.com",
+        "name" : "Tarun",
+        "password" : "admin",
+        "contact" : "9650849625"
+    },
+    "staging" : {
+        "email" : "",
+        "name" : "",
+        "password" : "",
+        "contact" : ""
+
+    }
+}
