@@ -1,11 +1,5 @@
-module.exports = (error, response) => {
-    const obj = {};
-
-    if(error) {
-        obj.error = {message: error};
-    } else if(response) {
-        obj.data = response;
-    }
-
+module.exports = (error, statusCode) => {
+    let obj = {};
+    if(error) obj = {message: error, status: statusCode};
     return obj;
 }

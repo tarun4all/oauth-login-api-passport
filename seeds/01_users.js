@@ -4,9 +4,9 @@ const hashing = require('../api/common/hashing');
 
 exports.seed = function(knex) {
   // Deletes ALL existing entries
-  return knex('companies').del()
+  return knex('client_users').del()
     .then(() => {
-      return knex('client_users').del();
+      return knex('companies').del();
     })
     .then(function () {
       // Inserts seed entries
@@ -18,7 +18,6 @@ exports.seed = function(knex) {
           contact: company.contact,
           id: knex.raw('uuid_generate_v4()')
       }).returning('*').then((data) => {
-        console.log(data);
         return knex('client_users').insert({
           createdAt: new Date(),
           email : user.email,
@@ -26,6 +25,22 @@ exports.seed = function(knex) {
           password : hashing.encrypt(user.password),
           contact: user.contact,
           company_id: data[0].id
+        }).then((res) => {
+          console.log(data[0].id);
+          let locations = [{name: 'Shute Creek', address: 'abc street'}, {name: 'Hawkins', address: 'xyz street'}]
+            return knex('locations').insert({
+              name : locations[0].name,
+              address1: locations[0].address,
+              company_id: data[0].id,
+              id: knex.raw('uuid_generate_v4()')
+            }).then(res => {
+              return knex('locations').insert({
+                name : locations[1].name,
+                address1: locations[1].address,
+                company_id: data[0].id,
+                id: knex.raw('uuid_generate_v4()')
+              });
+            });
         });
       });
     });

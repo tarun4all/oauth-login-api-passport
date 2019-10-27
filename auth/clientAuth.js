@@ -1,53 +1,55 @@
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const BearerStrategy = require('passport-http-bearer').Strategy;
-const responseBuilder = require('../api/common/responseBuilder');
 const knex = require('../knex/knex');
 const hashing = require('../api/common/hashing');
+const users = require('../models/Client_users');
+const generateToken = require('../api/common/generateToken');
 
-const generateToken = (user) => {
-    let {id, company} = user;
-        return hashing.encrypt(JSON.stringify({id, company, expire: (new Date((new Date).getTime() + 24*60*60*1000))}));
-}
+const errorMessage = {
+    loginError: 'Unable to authenticate with the provided email and password.',
+    tokenAuthError: 'Unable to authenticate with the provided token.'
+};
 
 passport.use(new LocalStrategy({ usernameField: 'email', passwordField: 'password' }, (username, password, done) => {
-    knex.select(['client_users.id as id', 'client_users.password as password', 'client_users.first as first', 'companies.id as company', 'companies.domain as domain', 'companies.appKey as apiKey'])
-        .from('client_users')
-        .leftJoin('companies', 'client_users.company_id', 'companies.id')
-        .where('client_users.email', '=', username)
-        .then(function(user) {
-            if(user && Array.isArray(user) && user.length > 0) {
-                if(hashing.decrypt(user[0].password) === password) return done(null, ({...user[0], token: generateToken(user[0])}));
-                else return done(responseBuilder('Invalid credentials'))
+    const q = users.query();
+        q.where('email', '=', username);
+        q.eager('company(onlyName)')
+        .then((data) => {
+            if(data && Array.isArray(data) && data.length > 0) {
+                let user = data[0];
+                if(hashing.decrypt(user.password) === password) return done(null, ({...generateToken(user)}));
+                else return done(responseBuilder(errorMessage.loginError, statusCodes.FAILED_AUTH));
             } else {
-                return done(responseBuilder('Invalid credentials'));
+                return done(responseBuilder(errorMessage.loginError, statusCodes.FAILED_AUTH));
             }
-        }).catch((err) => { return done(responseBuilder(err)); });
+        })
+        .catch(err => {return done(responseBuilder((process.env.ENVIRONMENT == 'development' ? err : 'Unable to fetch your info'), statusCodes.FAILED_AUTH))});
     }
 ));
 
 passport.use(new BearerStrategy((token, done) => {
     try {
-        const { id, expire } = JSON.parse(hashing.decrypt(token));
-        console.log(id, expire);
+        const { id, expire, type } = JSON.parse(hashing.decrypt(token));
         if(new Date(expire) > (new Date().getTime()/1000)) {
-            knex.select(['client_users.id as id', 'client_users.first as first', 'companies.name as company', 'companies.domain as domain', 'companies.appKey as apiKey'])
-            .from('client_users')
-            .leftJoin('companies', 'client_users.company_id', 'companies.id')
-            .where('client_users.id', '=', id)
-            .then(function(user) {
-                console.log(user);
-                if(user && Array.isArray(user) && user.length > 0) {
-                    return done(null, {...user[0]});
-                } else {
-                    return done(responseBuilder('Unauthorized access'));
-                }
-            }).catch((err) => { return done(responseBuilder('Some error occures')); });
+            const q = users.query();
+                    q.where('id', '=', id);
+                    q.eager('company(onlyName)')
+                    .then((data) => {
+                        if(data && Array.isArray(data) && data.length > 0) {
+                            let user = data[0];
+                            if(type === 'refresh_token') return done(null, {new_token: generateToken(user)});
+                            return done(null, {...user});
+                        } else {
+                            return done(responseBuilder(errorMessage.tokenAuthError, statusCodes.FAILED_AUTH));
+                        }
+                    })
+                    .catch(err => {return done(responseBuilder((process.env.ENVIRONMENT == 'development' ? err : 'Unable to fetch your info'), statusCodes.FAILED_AUTH))});
         } else {
-            return done(responseBuilder('Unauthorized access'));
+            done(responseBuilder(type && type === 'refresh_token' ? 'Unable to renew authentication' : errorMessage.tokenAuthError, statusCodes.FAILED_AUTH));
         }
         
     } catch (error) {
-        done(null, false);
+        done(responseBuilder(errorMessage.tokenAuthError, statusCodes.FAILED_AUTH));
     }
 }));

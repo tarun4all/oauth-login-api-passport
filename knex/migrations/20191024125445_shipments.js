@@ -1,0 +1,52 @@
+const enums = require('../../constants/enums');
+
+exports.up = knex => knex.schema
+  .createTable('shipments', (table) => {
+    table.uuid('id').primary();
+    table.string('shipment_name', 255).notNullable();
+    table.string('shipment_no', 255).notNullable().unique();
+    table.string('po_no', 255).nullable();
+    table.string('so_no', 255).nullable();
+    table.string('bol', 255).nullable();
+    table.string('system_id').nullable().unique();
+    table.enu('type', enums.shipment_types, { useNative: true, enumName: 'shipments_types' }).notNullable();
+    table.enu('stage', enums.shipment_stages, { useNative: true, enumName: 'shipments_stage' }).defaultTo('created');
+    table.enu('status', enums.shipment_status, { useNative: true, enumName: 'shipments_status' });
+    table.enu('freight_terms', enums.shipment_freight_terms, { useNative: true, enumName: 'shipments_freight_terms' });
+    table.string('freight_quote_no', 255).nullable();
+    table.string('third_party_freight_billing', 255).nullable();
+    table.decimal('quoted_cost', 12, 2).nullable();
+    table.decimal('actual_cost', 12, 2).nullable();
+    table.text('instructions').nullable();
+    table.timestamp('due_date_from').nullable();
+    table.timestamp('due_date_to').nullable();
+    table.timestamp('due_date').nullable();
+    table.timestamp('etd_from').nullable();
+    table.timestamp('etd_to').nullable();
+    table.timestamp('etd').nullable();
+    table.timestamp('shipper_eta').nullable();
+    table.timestamp('shipper_ata').nullable();
+    table.timestamp('shipper_ueta').nullable();
+    table.timestamp('consignee_eta').nullable();
+    table.timestamp('consignee_ata').nullable();
+    table.timestamp('consignee_ueta').nullable();
+    table.timestamp('time_calculated_at').nullable();
+    table.timestamp('completed_at').nullable();
+    table.timestamp('actual_pickup_at').nullable();
+    table.timestamp('actual_dropoff_at').nullable();
+    table.decimal('distance_to_shipper', 15, 2).nullable();
+    table.decimal('distance_to_consignee', 15, 2).nullable();
+    table.decimal('total_weight', 15, 2).nullable();
+    table.boolean('is_updated').defaultTo(false);
+    table.uuid('company_id').references('id').inTable('companies');
+    table.uuid('shipper_id').references('id').inTable('locations');
+    table.uuid('consignee_id').references('id').inTable('locations');
+    table.uuid('carrier_id').references('id').inTable('carriers');
+    table.string('packing_shipment_no', 255).nullable();
+    table.string('pickup_no', 255).nullable();
+    table.string('pro_no', 255).nullable();
+    table.enu('procedure_status', enums.procedure_status, { useNative: true, enumName: 'procedures_status' }).defaultTo('pre_loading');
+    table.timestamps(true, true);
+  });
+
+exports.down = knex => knex.schema.dropTable('shipments');

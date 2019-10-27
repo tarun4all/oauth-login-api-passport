@@ -12,10 +12,14 @@ class Hashing {
         return encrypted;
     }
     static decrypt(text) {
-        const decipher = crypto.createDecipher(algorithm, password);
-        let decrypted = decipher.update(text, 'hex', 'utf8');
-        decrypted += decipher.final('utf8');
-        return decrypted;
+        try {
+            const decipher = crypto.createDecipher(algorithm, password);
+            let decrypted = decipher.update(text, 'hex', 'utf8');
+            decrypted += decipher.final('utf8');
+            return decrypted;
+        } catch(err) {
+            return {};
+        }
     }
 }
 
